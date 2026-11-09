@@ -63,6 +63,12 @@
     border-radius: 12px;
     padding: 14px;
     margin-bottom: 10px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .card.selected {
+    border-color: var(--tg-theme-button-color, #5288c1);
   }
   .card b { display: block; margin-bottom: 4px; }
   .card span { font-size: 13px; color: var(--tg-theme-hint-color, #8a9099); }
@@ -79,6 +85,56 @@
     border-radius: 8px;
     font-weight: bold;
     font-size: 14px;
+  }
+
+  /* Кнопка покупки */
+  .pay-container {
+    margin-top: 16px;
+  }
+  .pay-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--tg-theme-button-color, #5288c1);
+    color: var(--tg-theme-button-text-color, #ffffff);
+    border: none;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .pay-btn:active {
+    opacity: 0.8;
+  }
+
+  /* Уведомление-заглушка */
+  #toast {
+    visibility: hidden;
+    min-width: 250px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 8px;
+    padding: 12px;
+    position: fixed;
+    z-index: 1;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%);
+    font-size: 14px;
+  }
+  #toast.show {
+    visibility: visible;
+    animation: fadein 0.5s, fadeout 0.5s 2.5s;
+  }
+
+  @keyframes fadein {
+    from { bottom: 0; opacity: 0; }
+    to { bottom: 30px; opacity: 1; }
+  }
+  @keyframes fadeout {
+    from { bottom: 30px; opacity: 1; }
+    to { bottom: 0; opacity: 0; }
   }
 
   .section { display: none; }
@@ -134,20 +190,24 @@
       <div class="curr-btn" data-curr="stars">⭐ Звёзды</div>
     </div>
 
-    <div class="card price">
+    <!-- Тариф 1 месяц (выбран по умолчанию) -->
+    <div class="card price selected" data-plan="month">
       <div>
         <b>🗓 1 месяц</b>
         <span>Безлимитные уведомления об удалённых сообщениях</span>
       </div>
       <div class="price-badge" id="price-month">89 ₽</div>
     </div>
-    <div class="card price">
+
+    <!-- Тариф 12 месяцев -->
+    <div class="card price" data-plan="year">
       <div>
         <b>👑 12 месяцев</b>
         <span>Самый выгодный тариф</span>
       </div>
       <div class="price-badge" id="price-year">899 ₽</div>
     </div>
+
     <div class="card">
       <b>🎁 Пробный период</b>
       <span>10 бесплатных уведомлений об удалённых сообщениях для новых пользователей</span>
@@ -156,7 +216,15 @@
       <b>🔗 Реферальная программа</b>
       <span>+15 сообщений за каждого друга, который перейдёт по вашей ссылке (в профиле бота)</span>
     </div>
+
+    <!-- Кнопка оплаты (требование Platega) -->
+    <div class="pay-container">
+      <button class="pay-btn" id="payButton">Купить 1 месяц за 89 ₽</button>
+    </div>
   </div>
+
+  <!-- Всплывающее сообщение-заглушка -->
+  <div id="toast">Оплата пока недоступна (платежная система в режиме настройки)</div>
 
 <script>
   Telegram.WebApp.ready();
@@ -175,25 +243,59 @@
     });
   });
 
-  // Переключение валюты
+  // Элементы
   const currBtns = document.querySelectorAll('.curr-btn');
   const priceMonth = document.getElementById('price-month');
   const priceYear = document.getElementById('price-year');
+  const planCards = document.querySelectorAll('.card.price');
+  const payButton = document.getElementById('payButton');
 
+  // Актуальные данные о ценах
   const prices = {
-    rub: { month: '89 ₽', year: '899 ₽' },
-    stars: { month: '79 ⭐', year: '799 ⭐' }
+    rub: { month: '89 ₽', year: '899 ₽', monthVal: '89 ₽', yearVal: '899 ₽' },
+    stars: { month: '79 ⭐', year: '799 ⭐', monthVal: '79 ⭐', yearVal: '799 ⭐' }
   };
 
+  let currentCurrency = 'rub';
+  let currentPlan = 'month';
+
+  // Функция обновления текста на кнопке оплаты
+  function updatePayButtonText() {
+    const currentPriceText = prices[currentCurrency][currentPlan];
+    const planNameText = currentPlan === 'month' ? '1 месяц' : '12 месяцев';
+    payButton.textContent = `Купить ${planNameText} за ${currentPriceText}`;
+  }
+
+  // Переключение валюты (Рубли / Звёзды)
   currBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       currBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       
-      const curr = btn.dataset.curr;
-      priceMonth.textContent = prices[curr].month;
-      priceYear.textContent = prices[curr].year;
+      currentCurrency = btn.dataset.curr;
+      priceMonth.textContent = prices[currentCurrency].month;
+      priceYear.textContent = prices[currentCurrency].year;
+      
+      updatePayButtonText();
     });
+  });
+
+  // Выбор тарифной карточки кликом
+  planCards.forEach(card => {
+    card.addEventListener('click', () => {
+      planCards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      
+      currentPlan = card.dataset.plan;
+      updatePayButtonText();
+    });
+  });
+
+  // Обработка нажатия на кнопку «Оплатить» (заглушка по требованию менеджера)
+  payButton.addEventListener('click', () => {
+    const toast = document.getElementById('toast');
+    toast.className = 'show';
+    setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
   });
 </script>
 
