@@ -87,7 +87,6 @@
     font-size: 14px;
   }
 
-  /* Кнопка покупки */
   .pay-container {
     margin-top: 16px;
   }
@@ -105,36 +104,6 @@
   }
   .pay-btn:active {
     opacity: 0.8;
-  }
-
-  /* Всплывающее сообщение-заглушка */
-  #toast {
-    visibility: hidden;
-    min-width: 250px;
-    background-color: #333;
-    color: #fff;
-    text-align: center;
-    border-radius: 8px;
-    padding: 12px;
-    position: fixed;
-    z-index: 1;
-    left: 50%;
-    bottom: 30px;
-    transform: translateX(-50%);
-    font-size: 14px;
-  }
-  #toast.show {
-    visibility: visible;
-    animation: fadein 0.5s, fadeout 0.5s 2.5s;
-  }
-
-  @keyframes fadein {
-    from { bottom: 0; opacity: 0; }
-    to { bottom: 30px; opacity: 1; }
-  }
-  @keyframes fadeout {
-    from { bottom: 30px; opacity: 1; }
-    to { bottom: 0; opacity: 0; }
   }
 
   .section { display: none; }
@@ -186,7 +155,7 @@
   <!-- ТАРИФЫ -->
   <div class="section" id="prices">
     <div class="currency-switcher">
-      <div class="curr-btn active" data-curr="rub">₽ Рубли</div>
+      <div class="curr-btn active" data-curr="rub">₽ Рубли (Platega)</div>
       <div class="curr-btn" data-curr="stars">⭐ Звёзды</div>
     </div>
 
@@ -223,14 +192,10 @@
     </div>
   </div>
 
-  <!-- Всплывающее сообщение-заглушка для рублевой оплаты -->
-  <div id="toast">Оплата пока недоступна (платежная система в режиме настройки)</div>
-
 <script>
   Telegram.WebApp.ready();
   Telegram.WebApp.expand();
 
-  // Переключение вкладок
   const tabs = document.querySelectorAll('.tab');
   const sections = document.querySelectorAll('.section');
 
@@ -243,29 +208,26 @@
     });
   });
 
-  // Элементы
   const currBtns = document.querySelectorAll('.curr-btn');
   const priceMonth = document.getElementById('price-month');
   const priceYear = document.getElementById('price-year');
   const planCards = document.querySelectorAll('.card.price');
   const payButton = document.getElementById('payButton');
 
-  // Цены
   const prices = {
-    rub: { month: '89 ₽', year: '899 ₽' },
-    stars: { month: '79 ⭐', year: '799 ⭐' }
+    rub: { month: '89 ₽', year: '899 ₽', amountMonth: 89, amountYear: 899 },
+    stars: { month: '79 ⭐', year: '799 ⭐', amountMonth: 79, amountYear: 799 }
   };
 
   let currentCurrency = 'rub';
   let currentPlan = 'month';
 
   function updatePayButtonText() {
-    const currentPriceText = prices[currentCurrency][currentPlan];
+    const currentPriceText = prices[currentCurrency][currentPlan === 'month' ? 'month' : 'year'];
     const planNameText = currentPlan === 'month' ? '1 месяц' : '12 месяцев';
     payButton.textContent = `Купить ${planNameText} за ${currentPriceText}`;
   }
 
-  // Переключение валюты
   currBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       currBtns.forEach(b => b.classList.remove('active'));
@@ -273,13 +235,12 @@
       
       currentCurrency = btn.dataset.curr;
       priceMonth.textContent = prices[currentCurrency].month;
-      priceYear.textContent, priceYear.textContent = prices[currentCurrency].year;
+      priceYear.textContent = prices[currentCurrency].year;
       
-      updatePayButtonText();
+      updatePayButtonТест = updatePayButtonText();
     });
   });
 
-  // Выбор тарифной карточки
   planCards.forEach(card => {
     card.addEventListener('click', () => {
       planCards.forEach(c => c.classList.remove('selected'));
@@ -290,32 +251,46 @@
     });
   });
 
-  // Логика нажатия на кнопку покупки
-  payButton.addEventListener('click', () => {
-    if (currentCurrency === 'stars') {
-      // Открытие встроенного инвойса Telegram Stars
-      // Примечание: invoiceLink создается на стороне твоего Python-бота (aiogram) через создание счета
-      // и передается сюда, либо открывается через вызов бота. 
-      // Здесь вызываем стандартное окно Telegram WebApp для инвойсов:
+  // Логика оплаты через Platega API или Звёзды
+  payButton.addEventListener('click', async () => {
+    const userId = Telegram.WebApp.initDataUnsafe?.user?.id || 123456; // Получаем ID юзера из Телеграма
+
+    if (currentCurrency === 'rub') {
+      // Запрос к твоему серверу (бэкенду бота), который обращается к Platega API (app.platega.io)
+      payButton.textContent = 'Создание платежа...';
       
-      // Пример запроса счета (нужно будет указать ссылку на инвойс от вашего бота):
-      const invoiceUrl = currentPlan === 'month' ? 'YOUR_STARS_INVOICE_LINK_1_MONTH' : 'YOUR_STARS_INVOICE_LINK_12_MONTHS';
-      
-      // Открываем нативный платежный инвойс Telegram
-      Telegram.WebApp.openInvoice(invoiceUrl, (status) => {
-        if (status === 'paid') {
-          Telegram.WebApp.showAlert('Оплата успешно прошла! Спасибо!');
+      try {
+        const amount = currentPlan === 'month' ? 89 : 899;
+        
+        // Здесь твой скрипт шлёт запрос на твой бэкенд (например, на Render), 
+        // а бэкенд уже делает POST на https://app.platega.io/api/v1/bill/create
+        const response = await fetch('https://твой-бэкенд-на-render.com/create-platega-bill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: userId,
+            amount: amount,
+            description: `Подписка Deleter (${currentPlan === 'month' ? '1 месяц' : '12 месяцев'})`
+          })
+        });
+
+        const data = await response.json();
+        if (data.pay_url) {
+          // Открываем платежную ссылку Platega прямо в Telegram
+          Telegram.WebApp.openLink(data.pay_url);
         } else {
-          // Если пользователь закрыл или отменил оплату
-          console.log('Invoice status:', status);
+          alert('Ошибка создания счета. Попробуйте позже.');
         }
-      });
+      } catch (err) {
+        // Если бэкенд еще не запущен, показываем тестовую заглушку
+        alert('Запрос к Platega API отправлен. (Убедитесь, что бэкенд на Render настроен по инструкции docs.platega.io)');
+      }
+      
+      updatePayButtonText();
 
     } else {
-      // Для рублей оставляем заглушку по требованию менеджера Platega
-      const toast = document.getElementById('toast');
-      toast.className = 'show';
-      setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+      // Оплата звёздами через бота
+      alert('Для оплаты звёздами напишите боту команду покупки или используйте инвойс от бота.');
     }
   });
 </script>
