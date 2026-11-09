@@ -107,7 +107,7 @@
     opacity: 0.8;
   }
 
-  /* Уведомление-заглушка */
+  /* Всплывающее сообщение-заглушка */
   #toast {
     visibility: hidden;
     min-width: 250px;
@@ -190,7 +190,7 @@
       <div class="curr-btn" data-curr="stars">⭐ Звёзды</div>
     </div>
 
-    <!-- Тариф 1 месяц (выбран по умолчанию) -->
+    <!-- Тариф 1 месяц -->
     <div class="card price selected" data-plan="month">
       <div>
         <b>🗓 1 месяц</b>
@@ -217,13 +217,13 @@
       <span>+15 сообщений за каждого друга, который перейдёт по вашей ссылке (в профиле бота)</span>
     </div>
 
-    <!-- Кнопка оплаты (требование Platega) -->
+    <!-- Кнопка оплаты -->
     <div class="pay-container">
       <button class="pay-btn" id="payButton">Купить 1 месяц за 89 ₽</button>
     </div>
   </div>
 
-  <!-- Всплывающее сообщение-заглушка -->
+  <!-- Всплывающее сообщение-заглушка для рублевой оплаты -->
   <div id="toast">Оплата пока недоступна (платежная система в режиме настройки)</div>
 
 <script>
@@ -250,23 +250,22 @@
   const planCards = document.querySelectorAll('.card.price');
   const payButton = document.getElementById('payButton');
 
-  // Актуальные данные о ценах
+  // Цены
   const prices = {
-    rub: { month: '89 ₽', year: '899 ₽', monthVal: '89 ₽', yearVal: '899 ₽' },
-    stars: { month: '79 ⭐', year: '799 ⭐', monthVal: '79 ⭐', yearVal: '799 ⭐' }
+    rub: { month: '89 ₽', year: '899 ₽' },
+    stars: { month: '79 ⭐', year: '799 ⭐' }
   };
 
   let currentCurrency = 'rub';
   let currentPlan = 'month';
 
-  // Функция обновления текста на кнопке оплаты
   function updatePayButtonText() {
     const currentPriceText = prices[currentCurrency][currentPlan];
     const planNameText = currentPlan === 'month' ? '1 месяц' : '12 месяцев';
     payButton.textContent = `Купить ${planNameText} за ${currentPriceText}`;
   }
 
-  // Переключение валюты (Рубли / Звёзды)
+  // Переключение валюты
   currBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       currBtns.forEach(b => b.classList.remove('active'));
@@ -274,13 +273,13 @@
       
       currentCurrency = btn.dataset.curr;
       priceMonth.textContent = prices[currentCurrency].month;
-      priceYear.textContent = prices[currentCurrency].year;
+      priceYear.textContent, priceYear.textContent = prices[currentCurrency].year;
       
       updatePayButtonText();
     });
   });
 
-  // Выбор тарифной карточки кликом
+  // Выбор тарифной карточки
   planCards.forEach(card => {
     card.addEventListener('click', () => {
       planCards.forEach(c => c.classList.remove('selected'));
@@ -291,11 +290,33 @@
     });
   });
 
-  // Обработка нажатия на кнопку «Оплатить» (заглушка по требованию менеджера)
+  // Логика нажатия на кнопку покупки
   payButton.addEventListener('click', () => {
-    const toast = document.getElementById('toast');
-    toast.className = 'show';
-    setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+    if (currentCurrency === 'stars') {
+      // Открытие встроенного инвойса Telegram Stars
+      // Примечание: invoiceLink создается на стороне твоего Python-бота (aiogram) через создание счета
+      // и передается сюда, либо открывается через вызов бота. 
+      // Здесь вызываем стандартное окно Telegram WebApp для инвойсов:
+      
+      // Пример запроса счета (нужно будет указать ссылку на инвойс от вашего бота):
+      const invoiceUrl = currentPlan === 'month' ? 'YOUR_STARS_INVOICE_LINK_1_MONTH' : 'YOUR_STARS_INVOICE_LINK_12_MONTHS';
+      
+      // Открываем нативный платежный инвойс Telegram
+      Telegram.WebApp.openInvoice(invoiceUrl, (status) => {
+        if (status === 'paid') {
+          Telegram.WebApp.showAlert('Оплата успешно прошла! Спасибо!');
+        } else {
+          // Если пользователь закрыл или отменил оплату
+          console.log('Invoice status:', status);
+        }
+      });
+
+    } else {
+      // Для рублей оставляем заглушку по требованию менеджера Platega
+      const toast = document.getElementById('toast');
+      toast.className = 'show';
+      setTimeout(() => { toast.className = toast.className.replace('show', ''); }, 3000);
+    }
   });
 </script>
 
