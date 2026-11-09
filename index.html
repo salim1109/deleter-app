@@ -36,6 +36,28 @@
     color: var(--tg-theme-button-text-color, #ffffff);
   }
 
+  .currency-switcher {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .curr-btn {
+    flex: 1;
+    padding: 8px;
+    text-align: center;
+    border-radius: 8px;
+    background: var(--tg-theme-secondary-bg-color, #232e3c);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+    border: 1px solid transparent;
+  }
+  .curr-btn.active {
+    border-color: var(--tg-theme-button-color, #5288c1);
+    background: var(--tg-theme-button-color, #5288c1);
+    color: var(--tg-theme-button-text-color, #ffffff);
+  }
+
   .card {
     background: var(--tg-theme-secondary-bg-color, #232e3c);
     border-radius: 12px;
@@ -61,12 +83,6 @@
 
   .section { display: none; }
   .section.active { display: block; }
-
-  .locked {
-    text-align: center;
-    padding: 40px 16px;
-    color: var(--tg-theme-hint-color, #8a9099);
-  }
 </style>
 </head>
 <body>
@@ -77,7 +93,6 @@
   <div class="tabs">
     <div class="tab active" data-tab="commands">📋 Команды</div>
     <div class="tab" data-tab="prices">💎 Тарифы</div>
-    <div class="tab" data-tab="admin">🛠 Админ</div>
   </div>
 
   <!-- КОМАНДЫ -->
@@ -99,10 +114,6 @@
       <span>Остановить текущий спам в этом чате</span>
     </div>
     <div class="card">
-      <b>🌐 .en / .tat / .sp</b>
-      <span>Перевод сообщения, на которое отвечаете (англ, татарский, испанский)</span>
-    </div>
-    <div class="card">
       <b>📊 .stat</b>
       <span>Статистика переписки: сколько сообщений всего, сегодня и за неделю</span>
     </div>
@@ -118,19 +129,24 @@
 
   <!-- ТАРИФЫ -->
   <div class="section" id="prices">
+    <div class="currency-switcher">
+      <div class="curr-btn active" data-curr="rub">₽ Рубли</div>
+      <div class="curr-btn" data-curr="stars">⭐ Звёзды</div>
+    </div>
+
     <div class="card price">
       <div>
         <b>🗓 1 месяц</b>
         <span>Безлимитные уведомления об удалённых сообщениях</span>
       </div>
-      <div class="price-badge">149 ⭐</div>
+      <div class="price-badge" id="price-month">89 ₽</div>
     </div>
     <div class="card price">
       <div>
-        <b>👑 1 год</b>
+        <b>👑 12 месяцев</b>
         <span>Самый выгодный тариф</span>
       </div>
-      <div class="price-badge">1799 ⭐</div>
+      <div class="price-badge" id="price-year">899 ₽</div>
     </div>
     <div class="card">
       <b>🎁 Пробный период</b>
@@ -142,18 +158,11 @@
     </div>
   </div>
 
-  <!-- АДМИН -->
-  <div class="section" id="admin">
-    <div class="locked">
-      🔒 Доступ только для администраторов.<br><br>
-      Чтобы получить доступ, введите пароль через команду <b>/admin</b> в самом боте.
-    </div>
-  </div>
-
 <script>
   Telegram.WebApp.ready();
   Telegram.WebApp.expand();
 
+  // Переключение вкладок
   const tabs = document.querySelectorAll('.tab');
   const sections = document.querySelectorAll('.section');
 
@@ -163,6 +172,27 @@
       sections.forEach(s => s.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Переключение валюты
+  const currBtns = document.querySelectorAll('.curr-btn');
+  const priceMonth = document.getElementById('price-month');
+  const priceYear = document.getElementById('price-year');
+
+  const prices = {
+    rub: { month: '89 ₽', year: '899 ₽' },
+    stars: { month: '79 ⭐', year: '799 ⭐' }
+  };
+
+  currBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      currBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const curr = btn.dataset.curr;
+      priceMonth.textContent = prices[curr].month;
+      priceYear.textContent = prices[curr].year;
     });
   });
 </script>
