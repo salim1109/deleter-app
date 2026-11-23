@@ -110,6 +110,13 @@
       gap: 10px;
     }
 
+    .empty-note {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      padding: 28px 0;
+    }
+
     .cmd-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -186,6 +193,57 @@
       color: #c7c7cc;
     }
 
+    /* Примеры использования */
+    .cmd-examples {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ex-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-right: 2px;
+    }
+
+    .ex-chip {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 12px;
+      color: #e5e5ea;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 5px 9px;
+      word-break: break-word;
+      transition: background-color 0.15s ease, transform 0.15s ease;
+    }
+
+    .ex-chip:active {
+      background: rgba(255, 255, 255, 0.16);
+      transform: scale(0.96);
+    }
+
+    .cmd-card.is-pro .ex-chip {
+      color: #bae6fd;
+      background: rgba(56, 189, 248, 0.1);
+      border-color: rgba(56, 189, 248, 0.22);
+    }
+
+    .cmd-card.is-pro .ex-chip:active {
+      background: rgba(56, 189, 248, 0.22);
+    }
+
+    .cmd-hint {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
     /* Уведомление о копировании */
     .toast {
       position: fixed;
@@ -203,6 +261,10 @@
       opacity: 0;
       transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
       pointer-events: none;
+      max-width: 90vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .toast.show {
@@ -255,15 +317,15 @@
 
   <div class="header">
     <h1>Список команд</h1>
-    <p>Нажми на любую команду, чтобы скопировать • 💎 — платные функции</p>
+    <p>Нажми на команду или на пример, чтобы скопировать • 💎 — платные функции</p>
   </div>
 
   <div class="controls">
     <input type="text" class="search-input" id="searchInput" placeholder="Поиск команды или описания..." />
     <div class="filters">
-      <button class="filter-btn active" data-filter="all">Все (45)</button>
-      <button class="filter-btn" data-filter="free">Обычные</button>
-      <button class="filter-btn pro-filter" data-filter="pro">💎 Платные</button>
+      <button class="filter-btn active" data-filter="all" id="btnAll">Все</button>
+      <button class="filter-btn" data-filter="free" id="btnFree">Обычные</button>
+      <button class="filter-btn pro-filter" data-filter="pro" id="btnPro">💎 Платные</button>
     </div>
   </div>
 
@@ -288,52 +350,147 @@
       tg.setBackgroundColor('#09090b');
     }
 
+    // examples — примеры (нажатие на пример копирует его)
+    // hint     — короткая подсказка под примерами
+    // copy     — что копировать при нажатии на карточку (по умолчанию cmd)
     const commandsData = [
-      { cmd: '.mute', desc: 'Замутить пользователя в чате на определённое время', pro: false },
-      { cmd: '.unmute', desc: 'Снять мут с пользователя досрочно', pro: false },
-      { cmd: '.nomute', desc: 'Иммунитет к мутам — защита от ограничений в чате', pro: true },
-      { cmd: '.spam', desc: 'Запустить автоматическую отправку сообщений по заданному тексту', pro: false },
-      { cmd: '.stop', desc: 'Остановить активный спам или запущенный процесс', pro: false },
-      { cmd: '.del', desc: 'Быстро удалить выбранное сообщение или несколько сообщений', pro: false },
-      { cmd: '.warn', desc: 'Выдать предупреждение нарушителю в чате', pro: false },
-      { cmd: '.unwarn', desc: 'Снять активное предупреждение с пользователя', pro: true },
-      { cmd: '.afk', desc: 'Включить режим «отошёл» с автоответом на упоминания', pro: false },
-      { cmd: '.afks', desc: 'Настройка текста и параметров режима AFK', pro: false },
-      { cmd: '.afklist', desc: 'Показать список пользователей, которые сейчас в AFK', pro: false },
-      { cmd: '.mutelist', desc: 'Показать список всех замученных пользователей', pro: false },
-      { cmd: '.info', desc: 'Подробная информация о пользователе или чате', pro: false },
-      { cmd: '.id', desc: 'Узнать числовой ID пользователя, чата или сообщения', pro: false },
-      { cmd: '.stat', desc: 'Статистика активности аккаунта и использования бота', pro: false },
-      { cmd: '.en/ru/sp/tat', desc: 'Быстрый перевод текста на английский, русский, испанский или татарский', pro: false },
-      { cmd: '.edit', desc: 'Моментально отредактировать отправленное сообщение', pro: false },
-      { cmd: '.qr', desc: 'Сгенерировать QR-код из любого текста или ссылки', pro: true },
-      { cmd: '.secret', desc: 'Создать секретное сообщение, доступное только выбранному человеку', pro: true },
-      { cmd: '.tempmail', desc: 'Создать временную одноразовую почту для регистраций', pro: true },
-      { cmd: '.geo', desc: 'Отправить или проверить геолокацию по координатам или адресу', pro: true },
-      { cmd: '.scam', desc: 'Проверить пользователя или ссылку по базе скамеров', pro: true },
-      { cmd: '.chat', desc: 'Управление настройками и информацией текущего чата', pro: true },
-      { cmd: '.ref', desc: 'Показать реферальную ссылку и статистику приглашений', pro: false },
-      { cmd: '.help', desc: 'Открыть справочник по всем доступным командам', pro: false },
-      { cmd: '.calc', desc: 'Встроенный калькулятор для быстрых расчётов прямо в чате', pro: false },
-      { cmd: '.rate', desc: 'Узнать актуальный курс валют и криптовалют', pro: false },
-      { cmd: '.weather', desc: 'Показать точный прогноз погоды в любом городе', pro: true },
-      { cmd: '.time', desc: 'Узнать точное время в нужном часовом поясе или городе', pro: true },
-      { cmd: '.short', desc: 'Сократить длинную ссылку в компактный вид', pro: true },
-      { cmd: '.pass', desc: 'Сгенерировать надёжный случайный пароль', pro: false },
-      { cmd: '.dice', desc: 'Бросить игральный кубик со случайным числом', pro: false },
-      { cmd: '.coin', desc: 'Подбросить монетку (орёл или решка)', pro: false },
-      { cmd: '.tts', desc: 'Озвучить написанный текст голосовым сообщением', pro: true },
-      { cmd: '.pin', desc: 'Закрепить важное сообщение в чате', pro: false },
-      { cmd: '.unpin', desc: 'Открепить сообщение в чате', pro: false },
-      { cmd: '.typing', desc: 'Включить имитацию набора текста в диалоге', pro: false },
-      { cmd: '.read', desc: 'Автоматически отметить сообщения прочитанными', pro: false },
-      { cmd: '.remind', desc: 'Установить напоминание на нужное время', pro: false },
-      { cmd: '.note', desc: 'Сохранить быструю текстовую заметку', pro: false },
-      { cmd: '.notes', desc: 'Показать список всех сохранённых заметок', pro: false },
-      { cmd: '.keyword', desc: 'Настроить триггер-слова для автоматической реакции', pro: false },
-      { cmd: '.ignore', desc: 'Добавить пользователя в список игнорируемых', pro: false },
-      { cmd: '.unignor', desc: 'Убрать пользователя из списка игнорируемых', pro: false },
-      { cmd: '.autotr', desc: 'Автоматический перевод всех входящих сообщений на лету', pro: true }
+      { cmd: '.mute', desc: 'Замутить пользователя в чате на определённое время', pro: false,
+        examples: ['.mute', '.mute 1ч', '.mute 30м', '.mute 2д'] },
+      { cmd: '.unmute', desc: 'Снять мут с пользователя досрочно', pro: false,
+        examples: ['.unmute'] },
+      { cmd: '.nomute', desc: 'Иммунитет к мутам — защита от ограничений в чате', pro: true,
+        examples: ['.nomute'], hint: 'Команда работает как переключатель: ещё раз — выключить' },
+      { cmd: '.spam', desc: 'Запустить автоматическую отправку сообщений по заданному тексту', pro: false,
+        examples: ['.spam привет 5', '.spam как дела 3'], hint: 'Последнее число — сколько раз отправить' },
+      { cmd: '.stop', desc: 'Остановить активный спам или запущенный процесс', pro: false,
+        examples: ['.stop'] },
+      { cmd: '.del', desc: 'Быстро удалить выбранное сообщение или несколько сообщений', pro: false,
+        examples: ['.del', '.del 10', '.del 50'], hint: 'Число — сколько ваших последних сообщений удалить' },
+      { cmd: '.warn', desc: 'Выдать предупреждение нарушителю в чате', pro: false,
+        examples: ['.warn'], hint: 'При достижении лимита предупреждений — автомут' },
+      { cmd: '.unwarn', desc: 'Снять активное предупреждение с пользователя', pro: true,
+        examples: ['.unwarn'] },
+      { cmd: '.afk', desc: 'Включить режим «отошёл» с автоответом на упоминания', pro: false,
+        examples: ['.afk Скоро отвечу!', '.afk 2ч Отошёл по делам'] },
+      { cmd: '.afks', desc: 'Настройка текста и параметров режима AFK', pro: false,
+        examples: ['.afks'] },
+      { cmd: '.afklist', desc: 'Показать список пользователей, которые сейчас в AFK', pro: false,
+        examples: ['.afklist'] },
+      { cmd: '.mutelist', desc: 'Показать список всех замученных пользователей', pro: false,
+        examples: ['.mutelist'] },
+      { cmd: '.info', desc: 'Подробная информация о пользователе или чате', pro: false,
+        examples: ['.info'] },
+      { cmd: '.id', desc: 'Узнать числовой ID пользователя, чата или сообщения', pro: false,
+        examples: ['.id'] },
+      { cmd: '.stat', desc: 'Статистика активности аккаунта и использования бота', pro: false,
+        examples: ['.stat'] },
+      { cmd: '.en/ru/sp/tat', desc: 'Быстрый перевод текста на английский, русский, испанский или татарский', pro: false,
+        examples: ['.en', '.ru', '.sp', '.tat'], hint: 'Отправьте в ответ на сообщение, которое нужно перевести', copy: '.en' },
+      { cmd: '.edit', desc: 'Моментально отредактировать отправленное сообщение', pro: false,
+        examples: ['.edit привет 5'], hint: 'Последнее число — сколько раз изменить сообщение' },
+      { cmd: '.qr', desc: 'Сгенерировать QR-код из любого текста или ссылки', pro: true,
+        examples: ['.qr https://example.com', '.qr Мой текст'] },
+      { cmd: '.secret', desc: 'Создать секретное сообщение, доступное только выбранному человеку', pro: true,
+        examples: ['.secret Тайный текст'], hint: 'Сообщение удалится само через 15 секунд' },
+      { cmd: '.tempmail', desc: 'Создать временную одноразовую почту для регистраций', pro: true,
+        examples: ['.tempmail'] },
+      { cmd: '.geo', desc: 'Отправить или проверить геолокацию по координатам или адресу', pro: true,
+        examples: ['.geo Москва, Красная площадь', '.geo Париж, Эйфелева башня'] },
+      { cmd: '.scam', desc: 'Проверить пользователя или ссылку по базе скамеров', pro: true,
+        examples: ['.scam'], hint: 'Результат придёт вам в личные сообщения с ботом' },
+      { cmd: '.chat', desc: 'Управление настройками и информацией текущего чата', pro: true,
+        examples: ['.chat'] },
+      { cmd: '.ref', desc: 'Показать реферальную ссылку и статистику приглашений', pro: false,
+        examples: ['.ref'] },
+      { cmd: '.help', desc: 'Открыть справочник по всем доступным командам', pro: false,
+        examples: ['.help'] },
+      { cmd: '.calc', desc: 'Встроенный калькулятор для быстрых расчётов прямо в чате', pro: false,
+        examples: ['.calc 2+2*2', '.calc (15+5)/4', '.calc 2^10'] },
+      { cmd: '.rate', desc: 'Узнать актуальный курс валют и криптовалют', pro: false,
+        examples: ['.rate usd rub', '.rate 100 eur usd', '.rate btc'] },
+      { cmd: '.weather', desc: 'Показать точный прогноз погоды в любом городе', pro: true,
+        examples: ['.weather Москва', '.weather Лондон'] },
+      { cmd: '.time', desc: 'Узнать точное время в нужном часовом поясе или городе', pro: true,
+        examples: ['.time Токио', '.time Нью-Йорк'] },
+      { cmd: '.short', desc: 'Сократить длинную ссылку в компактный вид', pro: true,
+        examples: ['.short https://очень-длинная-ссылка.ru/page'] },
+      { cmd: '.pass', desc: 'Сгенерировать надёжный случайный пароль', pro: false,
+        examples: ['.pass', '.pass 16', '.pass 32'], hint: 'Число — длина пароля (от 8 до 64)' },
+      { cmd: '.dice', desc: 'Бросить игральный кубик со случайным числом', pro: false,
+        examples: ['.dice', '.dice 100'], hint: 'С числом — случайное число от 1 до N' },
+      { cmd: '.coin', desc: 'Подбросить монетку (орёл или решка)', pro: false,
+        examples: ['.coin'] },
+      { cmd: '.tts', desc: 'Озвучить написанный текст голосовым сообщением', pro: true,
+        examples: ['.tts Привет, как дела?'], hint: 'Можно и в ответ на сообщение — озвучит его текст' },
+      { cmd: '.pin', desc: 'Закрепить важное сообщение в чате', pro: false,
+        examples: ['.pin'], hint: 'Отправьте в ответ на сообщение, которое нужно закрепить' },
+      { cmd: '.unpin', desc: 'Открепить сообщение в чате', pro: false,
+        examples: ['.unpin'], hint: 'Можно в ответ на конкретное закреплённое сообщение' },
+      { cmd: '.typing', desc: 'Включить имитацию набора текста в диалоге', pro: false,
+        examples: ['.typing', '.typing 10', '.typing voice'], hint: 'Число — секунды; voice — «записывает голосовое»' },
+      { cmd: '.read', desc: 'Автоматически отметить сообщения прочитанными', pro: false,
+        examples: ['.read'] },
+      { cmd: '.remind', desc: 'Установить напоминание на нужное время', pro: false,
+        examples: ['.remind 30м позвонить маме', '.remind 2ч встреча', '.remind 1д оплатить счёт'],
+        hint: 'м — минуты, ч — часы, д — дни' },
+      { cmd: '.note', desc: 'Сохранить быструю текстовую заметку', pro: false,
+        examples: ['.note любит кофе без сахара'] },
+      { cmd: '.notes', desc: 'Показать список всех сохранённых заметок', pro: false,
+        examples: ['.notes', '.notes clear'] },
+      { cmd: '.keyword', desc: 'Настроить триггер-слова для автоматической реакции', pro: false,
+        examples: ['.keyword цена', '.keyword'], hint: 'Повторная команда с тем же словом — убрать его' },
+      { cmd: '.ignore', desc: 'Добавить пользователя в список игнорируемых', pro: false,
+        examples: ['.ignore'] },
+      { cmd: '.unignore', desc: 'Убрать пользователя из списка игнорируемых', pro: false,
+        examples: ['.unignore'] },
+      { cmd: '.autotr', desc: 'Автоматический перевод всех входящих сообщений на лету', pro: true,
+        examples: ['.autotr en', '.autotr es', '.autotr off'], hint: 'Код языка или off — выключить' },
+
+      // ---------- Для работы (по подписке) ----------
+      { cmd: '.later', desc: 'Отправить сообщение в чат позже. Список отложенных — list, отмена — cancel №', pro: true,
+        examples: ['.later 30м Перезвоню!', '.later list', '.later cancel 5'] },
+      { cmd: '.tpl', desc: 'Сохранить шаблон ответа, посмотреть список шаблонов или удалить шаблон', pro: true,
+        examples: ['.tpl цена Наш прайс: ...', '.tpl', '.tpl del цена'] },
+      { cmd: '.t', desc: 'Отправить сохранённый шаблон в чат', pro: true,
+        examples: ['.t цена'] },
+      { cmd: '.greet', desc: 'Автоприветствие новому собеседнику — приходит один раз, при первом сообщении', pro: true,
+        examples: ['.greet Привет! Скоро отвечу', '.greet off'] },
+      { cmd: '.hours', desc: 'Автоответ вне рабочего времени (по вашему часовому поясу из настроек)', pro: true,
+        examples: ['.hours 9-18 Отвечу утром', '.hours off'] },
+      { cmd: '.filter', desc: 'Добавить или убрать слово из фильтра — сообщения собеседников с ним удаляются', pro: true,
+        examples: ['.filter реклама', '.filter'], hint: 'Повторная команда с тем же словом — убрать его' },
+      { cmd: '.vip', desc: 'Включить или выключить VIP для собеседника — каждое его сообщение придёт отдельным уведомлением', pro: true,
+        examples: ['.vip'] },
+      { cmd: '.find', desc: 'Поиск по сохранённым сообщениям чата (за последние 7 дней)', pro: true,
+        examples: ['.find адрес', '.find оплата'] },
+      { cmd: '.top', desc: 'Активность чата по часам и дням, кто больше пишет', pro: true,
+        examples: ['.top'] },
+      { cmd: '.export', desc: 'Выгрузка переписки в CSV-файл (сообщения за последние 7 дней)', pro: true,
+        examples: ['.export'] },
+
+      // ---------- Бесплатные ----------
+      { cmd: '.count', desc: 'Посчитать сообщения, слова и символы в чате', pro: false,
+        examples: ['.count'] },
+      { cmd: '.block', desc: 'Тихо удалять сообщения собеседника — без уведомления в чате. Снять — .unmute', pro: false,
+        examples: ['.block', '.block 2ч'] },
+      { cmd: '.pick', desc: 'Выбрать случайный вариант из списка', pro: false,
+        examples: ['.pick пицца суши бургер', '.pick кино | театр'] },
+      { cmd: '.8ball', desc: 'Шар предсказаний — ответ на любой вопрос', pro: false,
+        examples: ['.8ball Идти сегодня гулять?'] },
+      { cmd: '.rps', desc: 'Камень, ножницы, бумага — случайный выбор', pro: false,
+        examples: ['.rps'] },
+      { cmd: '.joke', desc: 'Случайная шутка', pro: false,
+        examples: ['.joke'] },
+      { cmd: '.fact', desc: 'Случайный интересный факт', pro: false,
+        examples: ['.fact'] },
+      { cmd: '.wiki', desc: 'Краткая справка из Википедии по любому запросу', pro: false,
+        examples: ['.wiki Эйфелева башня', '.wiki Python'] },
+      { cmd: '.ip', desc: 'Страна, регион, город и провайдер по IP-адресу', pro: false,
+        examples: ['.ip 8.8.8.8'] },
+      { cmd: '.ping', desc: 'Проверка связи бота с Telegram и задержка в миллисекундах', pro: false,
+        examples: ['.ping'] },
+      { cmd: '.ocr', desc: 'Распознать текст с картинки — ответом на сообщение с фото', pro: false,
+        examples: ['.ocr'], hint: 'Отправьте в ответ на сообщение с фотографией' }
     ];
 
     const listContainer = document.getElementById('commandsList');
@@ -343,6 +500,9 @@
 
     let currentFilter = 'all';
     let toastTimer;
+
+    // Счётчики на кнопках считаются автоматически
+    document.getElementById('btnAll').textContent = `Все (${commandsData.length})`;
 
     // Наблюдатель для плавной анимации при скролле
     const observer = new IntersectionObserver((entries) => {
@@ -357,8 +517,8 @@
       rootMargin: '0px 0px -20px 0px'
     });
 
-    function showToast(cmdText) {
-      toast.textContent = `Скопировано: ${cmdText}`;
+    function showToast(text) {
+      toast.textContent = `Скопировано: ${text}`;
       toast.classList.add('show');
       if (tg?.HapticFeedback) {
         tg.HapticFeedback.impactOccurred('light');
@@ -369,7 +529,7 @@
       }, 1800);
     }
 
-    function copyCommand(text) {
+    function copyText(text) {
       if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(() => showToast(text));
       } else {
@@ -385,6 +545,51 @@
       }
     }
 
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function buildCard(item, index) {
+      const card = el('div', `cmd-card ${item.pro ? 'is-pro' : ''}`);
+      // Небольшая задержка для первых карточек на экране
+      if (index < 8) {
+        card.style.transitionDelay = `${index * 35}ms`;
+      }
+
+      const top = el('div', 'cmd-top');
+      top.appendChild(el('div', 'cmd-name', `${item.pro ? '💎 ' : ''}${item.cmd}`));
+      top.appendChild(item.pro
+        ? el('span', 'pro-badge', '💎 PRO')
+        : el('span', 'copy-hint', 'Нажми, чтобы скопировать'));
+      card.appendChild(top);
+
+      card.appendChild(el('div', 'cmd-desc', item.desc));
+
+      if (item.examples && item.examples.length) {
+        const box = el('div', 'cmd-examples');
+        box.appendChild(el('span', 'ex-label', 'Пример'));
+        item.examples.forEach((ex) => {
+          const chip = el('code', 'ex-chip', ex);
+          chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyText(ex);
+          });
+          box.appendChild(chip);
+        });
+        card.appendChild(box);
+      }
+
+      if (item.hint) {
+        card.appendChild(el('div', 'cmd-hint', `ℹ️ ${item.hint}`));
+      }
+
+      card.addEventListener('click', () => copyText(item.copy || item.cmd));
+      return card;
+    }
+
     function renderCommands() {
       const query = searchInput.value.toLowerCase().trim();
       listContainer.innerHTML = '';
@@ -397,32 +602,19 @@
 
         const matchesSearch =
           item.cmd.toLowerCase().includes(query) ||
-          item.desc.toLowerCase().includes(query);
+          item.desc.toLowerCase().includes(query) ||
+          (item.examples || []).some(ex => ex.toLowerCase().includes(query));
 
         return matchesFilter && matchesSearch;
       });
 
+      if (!filtered.length) {
+        listContainer.appendChild(el('div', 'empty-note', 'Ничего не найдено'));
+        return;
+      }
+
       filtered.forEach((item, index) => {
-        const card = document.createElement('div');
-        card.className = `cmd-card ${item.pro ? 'is-pro' : ''}`;
-        // Небольшая задержка для первых карточек на экране
-        if (index < 8) {
-          card.style.transitionDelay = `${index * 35}ms`;
-        }
-
-        card.innerHTML = `
-          <div class="cmd-top">
-            <div class="cmd-name">
-              ${item.pro ? '💎' : ''} ${item.cmd}
-            </div>
-            ${item.pro
-              ? '<span class="pro-badge">💎 PRO</span>'
-              : '<span class="copy-hint">Нажми, чтобы скопировать</span>'}
-          </div>
-          <div class="cmd-desc">${item.desc}</div>
-        `;
-
-        card.addEventListener('click', () => copyCommand(item.cmd));
+        const card = buildCard(item, index);
         listContainer.appendChild(card);
         observer.observe(card);
       });
